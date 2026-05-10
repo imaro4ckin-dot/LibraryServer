@@ -107,27 +107,33 @@ public class LibraryService {
         List<Map<String, Object>> result = new ArrayList<>();
         for (BookEntity b : books.findAll()) {
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", b.getId());
-            m.put("title", b.getTitle());
-            m.put("author", b.getAuthor());
-            m.put("available", b.getAvailable() == 1);
-            m.put("dueDate", activeDueDates.getOrDefault(b.getId(), ""));
+            m.put("id",       b.getId());
+            m.put("title",    b.getTitle());
+            m.put("author",   b.getAuthor());
+            m.put("available",b.getAvailable() == 1);
+            m.put("dueDate",  activeDueDates.getOrDefault(b.getId(), ""));
+            m.put("isbn",     b.getIsbn());
+            m.put("category", b.getCategory());
             result.add(m);
         }
         return result;
     }
 
     @Transactional
-    public int addBook(String title, String author) {
+    public int addBook(String title, String author, String isbn, String category) {
         BookEntity b = new BookEntity(title, author);
+        b.setIsbn(isbn == null ? "" : isbn);
+        b.setCategory(category == null ? "" : category);
         return books.save(b).getId();
     }
 
     @Transactional
-    public boolean updateBook(int id, String title, String author) {
+    public boolean updateBook(int id, String title, String author, String isbn, String category) {
         return books.findById(id).map(b -> {
             b.setTitle(title);
             b.setAuthor(author);
+            b.setIsbn(isbn == null ? "" : isbn);
+            b.setCategory(category == null ? "" : category);
             books.save(b);
             return true;
         }).orElse(false);
@@ -145,6 +151,8 @@ public class LibraryService {
 
     @Transactional
     public boolean checkoutBook(int bookId, int userId, int loanDays) {
+        // Enforce per-user checkout limit
+        if (checkouts.findByUserIdAndReturnedAtIsNull(userId).size() >= 5) return false;
         Optional<BookEntity> opt = books.findById(bookId);
         if (opt.isEmpty() || opt.get().getAvailable() == 0) return false;
         BookEntity book = opt.get();
@@ -217,15 +225,33 @@ public class LibraryService {
         for (CheckoutEntity c : checkouts.findByUserIdAndReturnedAtIsNull(userId)) {
             books.findById(c.getBookId()).ifPresent(b -> {
                 Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",      b.getId());
-                m.put("title",   b.getTitle());
-                m.put("author",  b.getAuthor());
-                m.put("dueDate", c.getDueDate());
+                m.put("id",       b.getId());
+                m.put("title",    b.getTitle());
+                m.put("author",   b.getAuthor());
+                m.put("dueDate",  c.getDueDate());
+                m.put("isbn",     b.getIsbn());
+                m.put("category", b.getCategory());
                 result.add(m);
             });
         }
         result.sort(Comparator.comparing(m -> (String) m.get("dueDate")));
         return result;
+    }
+
+    // -------------------------------------------------------------------------
+    // Stats
+    // -------------------------------------------------------------------------
+
+    public Map<String, Object> getAdminStats() {
+        long totalBooks  = books.count();
+        List<CheckoutEntity> active = checkouts.findAllActive();
+        long checkedOut  = active.size();
+        long overdue     = active.stream()
+                .filter(c -> {
+                    try { return LocalDate.parse(c.getDueDate()).isBefore(LocalDate.now()); }
+                    catch (Exception e) { return false; }
+                }).count();
+        return Map.of("totalBooks", totalBooks, "checkedOut", checkedOut, "overdue", overdue);
     }
 
     // -------------------------------------------------------------------------

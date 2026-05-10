@@ -23,22 +23,23 @@ public class BookController {
         return service.loadBooks();
     }
 
-    /** POST /api/books  body: { "title": "...", "author": "..." } */
+    /** POST /api/books  body: { "title": "...", "author": "...", "isbn": "...", "category": "..." } */
     @PostMapping
     public ResponseEntity<Map<String, Object>> addBook(@RequestBody Map<String, String> body) {
         String title  = body.get("title");
         String author = body.get("author");
         if (title == null || title.isBlank() || author == null || author.isBlank())
             return ResponseEntity.badRequest().body(Map.of("error", "title and author required"));
-        int id = service.addBook(title, author);
+        int id = service.addBook(title, author, body.getOrDefault("isbn", ""), body.getOrDefault("category", ""));
         return ResponseEntity.ok(Map.of("id", id));
     }
 
-    /** PUT /api/books/{id}  body: { "title": "...", "author": "..." } */
+    /** PUT /api/books/{id}  body: { "title": "...", "author": "...", "isbn": "...", "category": "..." } */
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> updateBook(@PathVariable int id,
                                                           @RequestBody Map<String, String> body) {
-        boolean ok = service.updateBook(id, body.get("title"), body.get("author"));
+        boolean ok = service.updateBook(id, body.get("title"), body.get("author"),
+                body.getOrDefault("isbn", ""), body.getOrDefault("category", ""));
         return ok ? ResponseEntity.ok(Map.of("success", true))
                   : ResponseEntity.status(404).body(Map.of("error", "Book not found"));
     }

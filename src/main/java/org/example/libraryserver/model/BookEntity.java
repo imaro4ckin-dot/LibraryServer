@@ -19,6 +19,12 @@ public class BookEntity {
     @Column(nullable = false)
     private int available = 1;
 
+    @Column(name = "isbn", nullable = false, columnDefinition = "TEXT DEFAULT ''")
+    private String isbn = "";
+
+    @Column(name = "category", nullable = false, columnDefinition = "TEXT DEFAULT ''")
+    private String category = "";
+
     public BookEntity() {}
 
     public BookEntity(String title, String author) {
@@ -27,12 +33,16 @@ public class BookEntity {
         this.available = 1;
     }
 
-    public int getId()             { return id; }
-    public void setId(int id)      { this.id = id; }
-    public String getTitle()       { return title; }
-    public void setTitle(String t) { this.title = t; }
-    public String getAuthor()      { return author; }
-    public void setAuthor(String a){ this.author = a; }
-    public int getAvailable()      { return available; }
-    public void setAvailable(int a){ this.available = a; }
+    public int getId()              { return id; }
+    public void setId(int id)       { this.id = id; }
+    public String getTitle()        { return title; }
+    public void setTitle(String t)  { this.title = t; }
+    public String getAuthor()       { return author; }
+    public void setAuthor(String a) { this.author = a; }
+    public int getAvailable()       { return available; }
+    public void setAvailable(int a) { this.available = a; }
+    public String getIsbn()         { return isbn; }
+    public void setIsbn(String s)   { this.isbn = s == null ? "" : s; }
+    public String getCategory()     { return category; }
+    public void setCategory(String c){ this.category = c == null ? "" : c; }
 }
